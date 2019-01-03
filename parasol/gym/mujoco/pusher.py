@@ -22,8 +22,8 @@ class SawyerPushXY(utils.EzPickle, SawyerPushAndReachXYEnv):
                 pos_action_scale=2. / 100,
                 randomize_goals=False,
                 hide_goal=False,
-                init_block_low=(-0.05, 0.6),
-                init_block_high=(0.05, 0.65),
+                init_block_low=(-0.1, 0.6),
+                init_block_high=(0.1, 0.6),
                 puck_goal_low=(-0.05, 0.55),
                 puck_goal_high=(0.05, 0.65),
                 hand_goal_low=(-0.05, 0.55),
@@ -131,6 +131,12 @@ class SawyerPushXY(utils.EzPickle, SawyerPushAndReachXYEnv):
         self.reset_mocap_welds()
         return self._get_obs()
 
+    def render(self, mode='human'):
+        img = self.get_image(width=500 , height=500, camera_name="robotview").transpose()
+        img = img.reshape((3, 500, 500))
+        img = np.rot90(img, axes=(-2, -1))
+        return np.transpose(img, [1, 2, 0])
+
     def step(self, a):
         a = np.clip(a, -1, 1)
         mocap_delta_z = 0.02 - self.data.mocap_pos[0, 2]
@@ -195,7 +201,7 @@ class Pusher(GymWrapper):
         return None
     
     def cost_fn(self, s, a):
-        distances = np.linalg.norm(s[:,-2:] - self.fixed_puck_goal, axis=-1)
+        distances = np.linalg.norm(s[:,-2:] - self.default_goal, axis=-1)
         if self.sparse_reward:
             return -1*(distances < 0.03)
         else:
