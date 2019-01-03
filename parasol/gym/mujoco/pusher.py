@@ -32,10 +32,12 @@ class SawyerPushXY(utils.EzPickle, SawyerPushAndReachXYEnv):
                 fixed_hand_goal=(-0.05, 0.6),
                 mocap_low=(-0.25, 0.2, -0.0),
                 mocap_high=(0.25, 0.8, 0.2),
+                sparse_reward=False,
                 **kwargs
         ):
         # utils.EzPickle.__init__(self)
         self.quick_init(locals())
+        self.sparse_reward = sparse_reward
         self.reward_info = reward_info
         self.randomize_goals = randomize_goals
         self._pos_action_scale = pos_action_scale
@@ -155,7 +157,10 @@ class SawyerPushXY(utils.EzPickle, SawyerPushAndReachXYEnv):
             touch_distance=touch_distance,
             success=float(puck_distance < 0.03),
         )
-        reward = -puck_distance
+        if self.sparse_reward:
+            reward = info['success']
+        else:
+            reward = -puck_distance
         return obs, reward, done, info
 
 
@@ -172,6 +177,7 @@ class Pusher(GymWrapper):
             'sliding_window': kwargs.pop('sliding_window', 0),
             'default_goal': kwargs.pop('default_goal', [0.0, 0.75]),
             'image_dim': kwargs.pop('image_dim', 64),
+            'sparse_reward': kwargs.pop('sparse_reward', False),
         }
         super(Pusher, self).__init__(config)
 
@@ -189,5 +195,9 @@ class Pusher(GymWrapper):
         return None
     
     def cost_fn(self, s, a):
-        return np.linalg.norm(s[:,-2:] - self.fixed_puck_goal, axis=-1)
+        distances = np.linalg.norm(s[:,-2:] - self.fixed_puck_goal, axis=-1)
+        if self.sparse_reward:
+            return -1*(distances < 0.03)
+        else:
+            return distances
 
