@@ -75,6 +75,9 @@ class NNDS(Dynamics):
             self.cache[(q_X, q_A)] = T.mean(T.sum(stats.kl_divergence(q_Xt1, p_Xt1), axis=-1), axis=0), {'rmse': rmse, 'encoding-stdev': encoding_stdev, 'model-stdev': model_stdev}
         return self.cache[(q_X, q_A)]
 
+    def kl_gradients(self, q_X, q_A, kl, num_data):
+            return T.grad(kl, self.get_parameters())
+            
     def next_state(self, state, action, t):
         state_action = T.concatenate([state, action], -1)
         sigma, delta_mu = self.network(state_action).get_parameters('regular')
